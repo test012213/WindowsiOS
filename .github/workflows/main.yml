@@ -1,4 +1,4 @@
-name: Build VM Files Only (No IPA) v3
+name: Build VM Files Only (No IPA)
 
 on:
   workflow_dispatch:
@@ -21,10 +21,10 @@ jobs:
           brew install qemu mtools wimlib
           /opt/homebrew/bin/python3 --version
 
-      - name: Compile hvsparse with include flags
+      - name: Compile hvsparse with all source files
         run: |
           mkdir -p build
-          cc -O3 -std=c11 -Itools -Ihost -Icore tools/hvsparse_main.c host/disk.c -o build/hvsparse
+          cc -O3 -std=c11 -Itools -Ihost -Icore tools/hvsparse_main.c host/disk.c host/hvsparse.c -o build/hvsparse
 
       - name: Prepare UEFI firmware and download Windows 11 ARM64
         run: |
