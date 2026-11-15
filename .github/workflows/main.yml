@@ -1,4 +1,4 @@
-name: Build VM Files Only (No IPA)
+name: Build VM Files Only (No IPA) v2
 
 on:
   workflow_dispatch:
@@ -21,17 +21,17 @@ jobs:
           brew install qemu mtools wimlib
           /opt/homebrew/bin/python3 --version
 
-      - name: Compile hvsparse using Makefile
+      - name: Compile hvsparse directly with cc
         run: |
-          make hvsparse
           mkdir -p build
-          cp hvsparse build/hvsparse
+          cc -O3 -std=c11 tools/hvsparse_main.c host/disk.c -o build/hvsparse
 
       - name: Prepare UEFI firmware and download Windows 11 ARM64
         run: |
           mkdir -p work/downloads
           cp /opt/homebrew/share/qemu/edk2-aarch64-code.fd work/code.fd
-          curl -L --fail -o work/downloads/Win11_24H2_ARM64.iso "${{ inputs.windows_iso_url }}"
+          curl -L --fail --retry 5 --retry-delay 10 -o work/downloads/Win11_24H2_ARM64.iso "${{ inputs.windows_iso_url }}"
+          ls -lh work/downloads/Win11_24H2_ARM64.iso
 
       - name: Provision and optimize Windows 11 ARM64 image
         run: |
