@@ -1,0 +1,53 @@
+name: Build VM Files Only (No IPA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      windows_iso_url:
+        description: 'Direct download URL to Windows 11 24H2 ARM64 ISO or ESD'
+        required: true
+        type: string
+
+jobs:
+  build-vm-assets:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Apple Silicon & Install Dependencies
+        run: |
+          uname -m
+          brew install qemu mtools wimlib
+          /opt/homebrew/bin/python3 --version
+
+      - name: Compile hvsparse using Makefile
+        run: |
+          make hvsparse
+          mkdir -p build
+          cp hvsparse build/hvsparse
+
+      - name: Prepare UEFI firmware and download Windows 11 ARM64
+        run: |
+          mkdir -p work/downloads
+          cp /opt/homebrew/share/qemu/edk2-aarch64-code.fd work/code.fd
+          curl -L --fail -o work/downloads/Win11_24H2_ARM64.iso "${{ inputs.windows_iso_url }}"
+
+      - name: Provision and optimize Windows 11 ARM64 image
+        run: |
+          /opt/homebrew/bin/python3 scripts/provision_windows_arm64.py
+          /opt/homebrew/bin/python3 scripts/optimize_windows_lite.py
+
+      - name: Pack disk into windows11.hvsparse
+        run: |
+          ./build/hvsparse pack work/windows11_lite.img work/windows11.hvsparse
+
+      - name: Upload the 3 required files
+        uses: actions/upload-artifact@v4
+        with:
+          name: Win11-Documents-Files
+          path: |
+            work/code.fd
+            work/vars.fd
+            work/windows11.hvsparse
+          if-no-files-found: error
